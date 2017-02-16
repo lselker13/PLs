@@ -3,8 +3,8 @@ module Hw03 where
 
 import qualified Data.Map as Map
 import Data.Map (Map)
---import qualified Data.Set as Set
---import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.Set (Set)
 import Control.Applicative as Applicative
 
 -- Problem 1
@@ -20,12 +20,12 @@ data AExp =
   | Neg AExp
   deriving (Show, Eq, Ord)
 
-testStore = Map.insert "y" 1 (Map.singleton "x" 5) :: Store
+testStore = Map.insert "y" 2 (Map.singleton "x" 5) :: Store
 
 testExp = Neg (Times ((Var "x") `Plus` (Var "y"))  (Num 3))
 
 testStmt = While (Lt (Var "y") (Num 5)) (Assign "y" (Plus (Var "y") (Num 1)))
-testStmt' = If (Lt (Var "y") (Num 5))  (Assign "y" (Plus (Var "y") (Num 2))) Skip
+testStmt2 = If (Lt (Var "y") (Num 5))  (Assign "y" (Plus (Var "y") (Num 2))) Skip
 
 evalA :: Store -> AExp -> Int
 evalA st (Var x) = Map.findWithDefault 0 x st
@@ -109,29 +109,59 @@ evalB' st (And l r) = (&&) <$> (evalB' st l) <*> (evalB' st r)
 
 eval' :: Store -> Stmt AExp' BExp -> Either Error Store
 eval' st Skip = Right st
-eval' st (Assign n v) =  fmap (\x ->  Map.insert n x st) (evalA' st v)
-eval' st (Seq l r) = fmap eval' (eval' st l) r
-eval' st (If pred l r) = fmap apply (evalB' st pred)
-                    where
-                      apply True  = eval' st l
-                      apply False = eval' st r
+eval' st (Assign n v) = (\x ->  Map.insert n x st) <$> (evalA' st v)
+eval' st (Seq l r) = case (eval' st l) of
+  Left e -> Left e
+  Right st' -> eval' st' r
+eval' st (If pred l r) = case (evalB' st pred) of
+  Left e -> Left e
+  Right True -> eval' st l
+  Right False -> eval' st r
+eval' st (While pred c) = case (evalB' st pred) of
+  Left e -> Left e
+  Right True -> eval' st (Seq c (While pred c))
+  Right False -> Right st
+
+
+testStmt' = While (Lt (Var' "y") (Num' 5)) (Assign "y" (Plus' (Var' "y") (Num' 1)))
+testStmt2' = If (Lt (Var' "y") (Num' 5))  (Assign "y" (Div' (Var' "y") (Num' 2))) Skip
+
+-- Problem 3
 
 {-
-data Stmt a b =
-    Skip
-  | Assign VarName a
-  | Seq (Stmt a b) (Stmt a b)
-  | If (b a) (Stmt a b) (Stmt a b)
-  | While (b a) (Stmt a b)
-  deriving (Show, Eq, Ord)
-
-eval :: Store -> Stmt AExp BExp -> Store
-eval st Skip = st
-eval st (Assign n v) = Map.insert n (evalA st v) st
-eval st (Seq l r) = eval (eval st l) r
-eval st (If pred l r) | evalB st pred = eval st l
-                      | otherwise = eval st r
-eval st (While pred c) | evalB st pred = eval (eval st c) (While pred c)
-                       | otherwise = st
+data AExp' =
+    Var' VarName
+  | Num' Int
+  | Plus' AExp' AExp'
+  | Times' AExp' AExp'
+  | Neg' AExp'
+  | Div' AExp' AExp'
+  deriving (Show, Eq)
 
 -}
+varsA :: AExp' -> Set VarName
+varsA (Num' _) = Set.empty
+varsA (Var' v) = Set.singleton v
+varsA (Plus' l r) = Set.union (varsA l) (varsA r)
+varsA (Times' l r) = Set.union (varsA l) (varsA r)
+varsA (Div' l r) = Set.union (varsA l) (varsA r)
+varsA (Neg' l) = varsA l
+
+{-
+data BExp a =
+    Bool Bool
+  | Equal a a
+  | Lt a a
+  | Not (BExp a)
+  | Or (BExp a) (BExp a)
+  | And (BExp a) (BExp a)
+  deriving (Show, Eq, Ord)
+-}
+
+varsB :: BExp AExp' -> Set VarName
+varsB (Bool _) = Set.empty
+varsB (Equal l r) = Set.union (varsA l) (varsA r)
+varsB (Lt l r) = Set.union (varsA l) (varsA r)
+varsB (Not l) = varsB l
+varsB (Or l r) = Set.union (varsB l) (varsB r)
+varsB (And l r) = Set.union (varsB l) (varsB r)
