@@ -34,6 +34,7 @@ evalA st (Plus l r) = (evalA st l) + (evalA st r)
 evalA st (Times l r) = (evalA st l) * (evalA st r)
 evalA st (Neg l) = negate (evalA st l)
 
+
 data BExp a =
     Bool Bool
   | Equal a a
@@ -42,7 +43,6 @@ data BExp a =
   | Or (BExp a) (BExp a)
   | And (BExp a) (BExp a)
   deriving (Show, Eq, Ord)
-
 evalB :: Store -> BExp AExp -> Bool
 evalB _ (Bool b) = b
 evalB st (Equal l r) = (evalA st l) == (evalA st r)
@@ -165,3 +165,84 @@ varsB (Lt l r) = Set.union (varsA l) (varsA r)
 varsB (Not l) = varsB l
 varsB (Or l r) = Set.union (varsB l) (varsB r)
 varsB (And l r) = Set.union (varsB l) (varsB r)
+
+useBeforeDef :: Set VarName -> Stmt AExp' BExp -> (Set VarName, Set VarName)
+useBeforeDef defs Skip = (defs, Set.empty)
+useBeforeDef defs (Assign x a) = (Set.insert x defs, varsA a `Set.difference` defs)
+useBeforeDef defs (Seq l r) = (secondD, firstU `Set.union` secondU)
+  where
+    (firstD, firstU) = useBeforeDef defs l
+    (secondD, secondU) = useBeforeDef firstD r
+useBeforeDef defs (If pred l r) =
+  (lD `Set.intersection` rD, predU `Set.union` lU `Set.union` rU)
+  where
+    predU = varsB pred `Set.difference` defs
+    (lD, lU) = useBeforeDef defs l
+    (rD, rU) = useBeforeDef defs r
+useBeforeDef defs (While pred c) = (cD, predU `Set.union` cU)
+  where
+    predU = varsB pred `Set.difference` defs
+    (cD, cU)  = useBeforeDef defs c
+
+unboundY = Assign "x" (Var' "y")
+ambiguous b = Seq (If b (Assign "y" (Num' 0)) Skip) unboundY
+
+testUnbound, testAmbiguous :: Bool
+testUnbound = useBeforeDef Set.empty unboundY ==
+              (Set.singleton "x", Set.singleton "y")
+
+testAmbiguous = useBeforeDef Set.empty (ambiguous (Bool True)) ==
+                (Set.singleton "x", Set.singleton "y")
+
+-- Problem 4
+
+type Config = (Store, Stmt AExp BExp)
+
+step :: Config -> Maybe Config
+step (_,Skip) = Nothing
+step (st,Assign x a) = Just (Map.insert x (evalA st a) st,Skip)
+step (st,Seq Skip s2) = Just (st,s2)
+step (st,Seq s1 s2) = case step (st, s1) of
+         Just (st',b) -> Just (st', (Seq b s2))
+         Nothing -> Just (st, s2)
+     
+step (st,If b s1 s2) | evalB st b = Just (st, s1)
+                     | otherwise = Just (st, s2) 
+step (st,While b s) | evalB st b = Just (st, Seq s (While b s))
+                    | otherwise = Nothing
+
+
+trace :: (a -> Maybe a) -> a -> [a]
+trace f v =
+  case f v of
+    Nothing -> [v]
+    Just v' -> v:trace f v'
+
+
+data TVL = No | Maybe | Yes deriving (Show, Eq, Ord)
+
+diverges :: Ord a => Int -> [a] -> TVL
+diverges limit = divAux limit Set.empty 
+  where
+    divAux 0 _ _ = Maybe
+    divAux _ _ [] = No
+    divAux limit soFar (l:ls) = if (not (Set.member l soFar))
+      then (divAux (limit - 1) (Set.insert l soFar) ls)
+      else Yes
+
+haltsIn :: Stmt AExp BExp -> Int -> TVL
+haltsIn s limit = case diverges limit l of
+  Yes -> No
+  Maybe -> Maybe
+  No -> Yes
+  where
+    l = trace step (Map.empty, s)
+
+loop :: Stmt AExp BExp
+loop = While (Bool True) Skip
+
+long :: Stmt AExp BExp
+long = Seq (Assign "x" (Num 0)) (While (Lt (Var "x") (Num 1000)) (Assign "x" (Plus (Var "x") (Num 1))))
+
+tricky :: Stmt AExp BExp
+tricky = Seq (Assign "x" (Num 0)) (While (Bool True) (Assign "x" (Plus (Var "x") (Num 1))))
