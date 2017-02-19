@@ -109,7 +109,9 @@ evalB' st (And l r) = (&&) <$> (evalB' st l) <*> (evalB' st r)
 
 eval' :: Store -> Stmt AExp' BExp -> Either Error Store
 eval' st Skip = Right st
-eval' st (Assign n v) = (\x ->  Map.insert n x st) <$> (evalA' st v)
+eval' st (Assign n v) = case (evalA' st v) of
+                       Left e -> Left e
+                       Right a -> Right (Map.insert n a st)
 eval' st (Seq l r) = case (eval' st l) of
   Left e -> Left e
   Right st' -> eval' st' r
@@ -119,7 +121,9 @@ eval' st (If pred l r) = case (evalB' st pred) of
   Right False -> eval' st r
 eval' st (While pred c) = case (evalB' st pred) of
   Left e -> Left e
-  Right True -> eval' st (Seq c (While pred c))
+  Right True -> case (eval' st c) of 
+              Left e -> Left e
+              Right a -> eval' a (While pred c)
   Right False -> Right st
 
 
