@@ -88,17 +88,38 @@ type VarName = String
 data LExp =
       Var VarName
     | Ap LExp LExp
-    | Lambda VarName LExp
+    | Lambda VarName Type LExp
     | Num Int
     | Succ
+
+data Type =
+      Int 
+    | Bool
+    | TFun Type Type
+    | (Type, Type)
+
+{-t ::= int | bool | t1 -> t2 | (t1,t2)
+e ::= x | e1 e2 | lambda x : t. e
+    | if e1 then e2 else e3 | let x = e1 in e2 | let rec x : t = e1 in e2 | (e : t)
+    | n | true | false | (e1, e2)
+    | unop e | e1 binop e2
+unop ::= - | not | fst | snd
+binop ::= + | - | * | / | and | or | == | <
+-}
     
 par :: String -> String
 par x = "(" ++ x ++ ")"
 
+instance Show Type where
+  show Int = "int"
+  show Bool = "bool"
+  show (TFun t1 t2) = show t1 ++ "->" ++ show t2
+  show (t1,t2) = par $ show t1 ++ "," ++ show t2
+
 instance Show LExp where
   show (Var x) = x
   show (Ap e1 e2) = (par $  show e1) ++" "++ (par $  show e2)
-  show (Lambda v e) = "lambda " ++ v ++ " . " ++ (show e)
+  show (Lambda v t e) = "lambda " ++ v ++ " : " ++ (show t) " . " ++ (show e)
   show (Num x) = show x
   show (Succ) = "Succ"
 
