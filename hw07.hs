@@ -1,4 +1,4 @@
-module Hw06 where
+module Hw07 where
 
 import Control.Applicative
 import Test.QuickCheck
@@ -233,10 +233,13 @@ te5 = "(lambda x . x) z"
 three = "let zero = lambda s z. z in let succ = lambda n. lambda s z. s (n s z) in succ (succ (succ zero))"
 
 {-
-ae :: Int -> Gen LExp
-ae n | n <= 0    =  Lambda "x" (Var "x")
-     | otherwise = oneof [Num <$> arbitrary,
-                          Plus <$> ae (n `div` 2) <*> ae (n `div` 2),
-                          Times <$> ae (n `div` 2) <*> ae (n `div` 2),
-                          Neg <$> ae(n `div` 2)]
+CHECKPOINT 1
+--Clear out the -c and -n flags.
+Add types to the parser, AST, and evaluator.
+Add a type checker.
+Add bools, the boolean operators, etc.
+CHECKPOINT 2
+Add ints, etc.
+Add pairs.
+Add let rec.
 -}
