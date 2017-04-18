@@ -1,0 +1,19 @@
+let Y = lambda f . (lambda x y . f (x x) y) (lambda x y . f (x x) y) in
+let id = lambda x . x in
+let zero = lambda s z . z in
+let one = lambda s z . s z in
+let five = lambda s z . s (s (s (s (s z)))) in
+let succ = lambda n. lambda s z . s (n s z) in
+let plus = lambda m n . m succ n in
+let times = lambda m n . m (plus n) zero in
+let true = lambda a b . a id in
+let false = lambda a b . b id in
+let isZero = lambda n . n (lambda x . false) true in
+let pair = lambda a b . lambda c . c a b in
+let fst = lambda p . p (lambda f t . f) in
+let snd = lambda p . p (lambda f t . t) in
+let pred = lambda n . snd (n (lambda p . pair (succ (fst p)) (fst p)) (pair zero zero)) in
+let facF = lambda facRec . lambda n . (isZero n) (lambda x . one) (lambda x . (times n (facRec (pred n)))) in
+let fac = Y facF in
+let plusF = lambda plusRec . lambda m n . (isZero m) n (plusRec (pred m) (succ n)) in
+fac five
