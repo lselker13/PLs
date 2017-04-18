@@ -169,6 +169,7 @@ free (Ap e1 e2) = Data.Set.union (free e1) (free e2)
 free _ = error $ "Running free on nums/succs"
 -- If Church or Check are in the map at all they are true
 
+
 processArgs :: [String] -> Map String String
 processArgs [] = Data.Map.empty
 processArgs ("-c":ss) = Data.Map.insert "Check" "" (processArgs ss)
