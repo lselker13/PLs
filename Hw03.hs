@@ -109,7 +109,9 @@ evalB' st (And l r) = (&&) <$> (evalB' st l) <*> (evalB' st r)
 
 eval' :: Store -> Stmt AExp' BExp -> Either Error Store
 eval' st Skip = Right st
-eval' st (Assign n v) = (\x ->  Map.insert n x st) <$> (evalA' st v)
+eval' st (Assign n v) = case (evalA' st v) of
+                       Left e -> Left e
+                       Right a -> Right (Map.insert n a st)
 eval' st (Seq l r) = case (eval' st l) of
   Left e -> Left e
   Right st' -> eval' st' r
@@ -119,7 +121,9 @@ eval' st (If pred l r) = case (evalB' st pred) of
   Right False -> eval' st r
 eval' st (While pred c) = case (evalB' st pred) of
   Left e -> Left e
-  Right True -> eval' st (Seq c (While pred c))
+  Right True -> case (eval' st c) of 
+              Left e -> Left e
+              Right a -> eval' a (While pred c)
   Right False -> Right st
 
 
@@ -246,3 +250,20 @@ long = Seq (Assign "x" (Num 0)) (While (Lt (Var "x") (Num 1000)) (Assign "x" (Pl
 
 tricky :: Stmt AExp BExp
 tricky = Seq (Assign "x" (Num 0)) (While (Bool True) (Assign "x" (Plus (Var "x") (Num 1))))
+
+{- Explain why your haltsIn gives an imprecise answer.
+
+haltsIn gives an imprecise answer, because the function returns a maybe" answer after a certain amount of time, but the answer may have been different
+given a higher amount of time to calculate the answer, thus, haltsIn gives an imprecise answer for certain inputs.   
+
+Do you think you can write a program where haltsIn gives a wrong answer? If so, explain your idea—or write it! If not, explain (or prove!) why not. 
+
+This is not possible, but assume you are able to build a program where haltsIn gives a wrong answer, in order to reach a contradiction
+Case 1: if haltsIn returns Maybe, then this means that when viewing the program as a set, the diverges function was unable to determine two elements of the set 
+  that are the same (but did not get through the whole set in the given amount of time), so in this case haltsIn returns the correct answer of Maybe. That is to say,
+  given more time, haltsIn may return Maybe again, Yes, or No.
+Case 2: if haltsIn returns No, this means that the diverges function found two elements of the set that are equal, which means the program reached the 
+same state more than once, and therefore diverges, so haltsIn correctly returns No
+Case 3: if haltsIn returns Yes, this means that the diverges function could not find two elements of the set that are equal and returned with a No answer, therefore the program
+does not reach a state more than once, thus, haltsIn correctly returns Yes 
+-}
