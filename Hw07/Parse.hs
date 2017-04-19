@@ -5,6 +5,7 @@ import Test.QuickCheck
 
 import Data.Char
 import Data.Map hiding (null,foldr, foldl)
+import Data.List
 
 import Data.Maybe
 import Data.Set hiding (null, foldr, foldl)
@@ -73,12 +74,6 @@ instance Applicative Parser where
 instance Alternative Parser where
   empty = Parser $ \_ -> Nothing
   l <|> r = Parser $ \s -> parse l s <|> parse r s
-
-instance Monad Parser where
-  p >>= k = Parser $ \s ->
-    case parse p s of
-      Nothing -> Nothing
-      Just (v,s') -> parse (k v) s'
 
 ensure :: (a -> Bool) -> Parser a -> Parser a
 ensure p parser = Parser $ \s ->
@@ -165,12 +160,22 @@ formAp = ws *> pure Ap
 pair a b = (a,b)
 
 lExp, lExps :: Parser LExp
-lExp = formLambda <$> (lambda *> some (pair <$> (ws *> var) <*> (ws *> char ':' *> ws *> typ))) <*> (dot *> lExps)
-       <|> Var <$> var <* ws
-       <|> ws *> parens lExps <*ws
-       <|> pLet <$> (str "let" *> var) <*> (ws *> char ':' *> ws *> typ) <*> (char '=' *> ws *> lExps) <*> (ws *> str "in" *> lExps)
+lExp = 
+  formLambda <$>
+  (
+    lambda *>
+    (
+      ((:[]) <$> (pair <$> (var) <*> (char ':' *> typ)) )
+      <|> (some $ parens (pair <$> (var) <*> (char ':' *> typ)))
+    )
+  )
+  <*> (dot *> lExps)
+  <|> Var <$> var <* ws
+  <|> ws *> parens lExps <*ws
+  <|> pLet <$> (str "let" *> var) <*> (char ':' *> typ) <*> (char '=' *> ws *> lExps) <*> (str "in" *> lExps)
   where
     pLet v t e1 e2 = Ap (Lambda v t e2) e1
+    
 lExps = lExp `chainl1` formAp
 
 pLExps :: String -> Either error LExp
