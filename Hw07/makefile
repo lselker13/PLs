@@ -1,4 +1,4 @@
-interp : Eval.hs Parse.hs Main.hs
+interp : Eval.hs Parse.hs Main.hs TypeChecker.hs
 	ghc -o $@ $^
 
 clean :

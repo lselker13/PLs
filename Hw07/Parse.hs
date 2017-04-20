@@ -13,9 +13,6 @@ import Data.Set hiding (null, foldr, foldl)
 import System.Environment
 import System.Exit
 import System.IO
-
-
-
 type VarName = String
 
 
@@ -24,13 +21,33 @@ data LExp =
     | Ap LExp LExp
     | Lambda VarName Type LExp
     | Num Int
+    | Bool Bool
     | Succ
+    | Let VarName LExp LExp
+    | If LExp LExp LExp
 
 data Type =
-      Int 
-    | Bool
+      TInt
+    | TBool
     | TFun Type Type
-    | Pair Type Type
+    | TPair Type Type
+    deriving Eq
+
+data Unop =
+  | Neg LExp
+  | Not LExp
+  | Fst LExp
+  | Snd LExp
+
+data Binop =
+  | Plus LExp LExp
+  | Minus LExp LExp
+  | Times LExp LExp
+  | Div LExp LExp
+  | And LExp LExp
+  | Or LExp LExp
+  | Eqq LExp LExp
+  | Lt LExp LExp
 
 {-t ::= int | bool | t1 -> t2 | (t1,t2)
 e ::= x | e1 e2 | lambda x : t. e
@@ -45,10 +62,10 @@ par :: String -> String
 par x = "(" ++ x ++ ")"
 
 instance Show Type where
-  show Int = "int"
-  show Bool = "bool"
+  show TInt = "int"
+  show TBool = "bool"
   show (TFun t1 t2) = show t1 ++ "->" ++ show t2
-  show (Pair t1 t2) = par $ show t1 ++ "," ++ show t2
+  show (TPair t1 t2) = par $ show t1 ++ "," ++ show t2
 
 instance Show LExp where
   show (Var x) = x
@@ -115,7 +132,7 @@ keywords :: [String]
 keywords = ["lambda", "let", "in", "int", "bool"]
 
 types :: Map String Type
-types = Data.Map.insert "int" Int (Data.Map.insert "bool" Bool (Data.Map.empty))
+types = Data.Map.insert "int" TInt (Data.Map.insert "bool" TBool (Data.Map.empty))
 
 isKeyword :: String -> Bool
 isKeyword = (`elem` keywords)
