@@ -24,7 +24,7 @@ main = do
   input <- case Data.Map.lookup "Filename" pArgs of
     Nothing -> getContents
     Just fn -> readFile fn
-  let parsed = case pLExps input of
+  let parsed = case pLExp input of
         (Left e) -> e
         (Right exp) -> exp
   let evaluated = eval parsed
