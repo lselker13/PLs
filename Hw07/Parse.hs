@@ -25,7 +25,16 @@ data LExp =
     | Succ
     | Let VarName LExp LExp
     | If LExp LExp LExp
-
+    | Typed LExp Type
+    | Pair LExp LExp
+    | Unop LExp
+    | Binop LExp LExp
+    
+{-t ::= 
+e ::=  let rec x : t = e1 in e2 |
+unop ::=
+binop ::= 
+-}
 data Type =
       TInt
     | TBool
@@ -34,29 +43,22 @@ data Type =
     deriving Eq
 
 data Unop =
-  | Neg LExp
-  | Not LExp
-  | Fst LExp
-  | Snd LExp
+  | Neg
+  | Not
+  | Fst
+  | Snd
 
 data Binop =
-  | Plus LExp LExp
-  | Minus LExp LExp
-  | Times LExp LExp
-  | Div LExp LExp
-  | And LExp LExp
-  | Or LExp LExp
-  | Eqq LExp LExp
-  | Lt LExp LExp
+  | Plus
+  | Minus
+  | Times
+  | Div
+  | And
+  | Or
+  | Eqq
+  | Lt 
 
-{-t ::= int | bool | t1 -> t2 | (t1,t2)
-e ::= x | e1 e2 | lambda x : t. e
-    | if e1 then e2 else e3 | let x = e1 in e2 | let rec x : t = e1 in e2 | (e : t)
-    | n | true | false | (e1, e2)
-    | unop e | e1 binop e2
-unop ::= - | not | fst | snd
-binop ::= + | - | * | / | and | or | == | <
--}
+
     
 par :: String -> String
 par x = "(" ++ x ++ ")"
