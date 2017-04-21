@@ -23,6 +23,7 @@ data LExp =
     | Num Int
     | Bool Bool
     | Let VarName LExp LExp
+    | LetRec VarName Type LExp LExp
     | If LExp LExp LExp
     | Typed LExp Type
     | Pair LExp LExp
@@ -38,11 +39,11 @@ data LExp =
     | Or LExp LExp
     | Lt LExp LExp
     | Eqq LExp LExp
-    deriving Show
-{-
+--    deriving Show
+
 instance Show LExp where
   show = lShow
--}
+
 
 lShow :: LExp -> String
 lShow (Var x) = x
@@ -52,6 +53,7 @@ lShow (Num x) = show x
 lShow (Bool True) = "true"
 lShow (Bool False) = "false"
 lShow (Let v e1 e2) = "let " ++ v ++ " = " ++ (lShow e1) ++ " in " ++ (lShow e2)
+lShow (LetRec v t e1 e2) = "let rec " ++ v ++ " : " ++ (show t) ++ " = " ++ (lShow e1) ++ " in " ++ (lShow e2)
 lShow (If c e1 e2) = "if " ++ (lShow c) ++ " then " ++ (lShow e1) ++ " else " ++ (lShow e2)
 lShow (Typed e t) = par $ (lShow e) ++ " : " ++ (show t)
 lShow (Pair e1 e2) = par $ (lShow e1) ++ ", " ++ (lShow e2)
@@ -256,6 +258,11 @@ atom =
   <|> Var <$> var <* ws
   
   <|> ws *> parens lExp <*ws
+
+  <|> LetRec <$> (str "let"*> ws *> str "rec" *> var)
+  <*> (char ':' *> typ)
+  <*> (char '=' *> ws *> lExp)
+  <*> (str "in" *> lExp)
   
   <|> Let <$> (str "let" *> var)
   <*> (char '=' *> ws *> lExp)
