@@ -89,7 +89,7 @@ data Type =
 instance Show Type where
   show TInt = "int"
   show TBool = "bool"
-  show (TFun t1 t2) = show t1 ++ "->" ++ show t2
+  show (TFun t1 t2) = show t1 ++ " -> " ++ show t2
   show (TPair t1 t2) = par $ show t1 ++ "," ++ show t2
 
 
@@ -165,11 +165,15 @@ isKeyword = (`elem` keywords)
 kw :: String -> Parser String
 kw s = str s <* ensure (maybe True (not . isAlphaNum)) lookahead
 
-typ :: Parser Type
-typ = Parser $ \s -> case parse (ws *> some (satisfy isAlpha))  s of
+typ, tAtom :: Parser Type
+tAtom' = Parser $ \s -> case parse (ws *> some (satisfy isAlpha))  s of
   Nothing -> Nothing
   Just (s, c) -> (\t -> (t, c)) <$> Data.Map.lookup s types
-
+tAtom = tAtom'
+  <|> parens typ
+  <|> parens (TPair <$> typ <*> (char ',' *> ws *> typ))
+typ = TFun <$> tAtom <*> (str "->" *> ws *> typ)
+  <|> tAtom
 
 isQuote :: Char -> Bool
 isQuote = (== '\'')
@@ -200,6 +204,7 @@ formAp :: Parser (LExp -> LExp -> LExp)
 formAp = ws *> pure Ap
 
 pair a b = (a,b)
+
 
 
 unop :: Parser (LExp -> LExp)
@@ -279,7 +284,7 @@ term = factor `chainl1` binop3
 
 comparable = term `chainl1` binop2
 
-lExp = comparable `chainl1` binop1
+lExp = (comparable `chainl1` binop1) <* ws
 
 pLExp :: String -> Either error LExp
 pLExp s = case parse lExp s of
