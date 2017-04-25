@@ -15,6 +15,8 @@ import System.IO
 
 import Parse
 
+--let x = e1 in e2
+--e2 -> x -> e1 
 subst :: LExp -> VarName -> LExp -> LExp
 subst (Var x) y e | x == y    = e
                   | otherwise = Var x
@@ -23,19 +25,118 @@ subst (Lambda x t e1) y e | x == y = Lambda x t e1
                         | otherwise = Lambda x t (subst e1 y e)
 subst (Num n) _ _ = (Num n)
 
-eval :: LExp -> Either error LExp
-eval (Var x) = Left $ error $ "Unbound variable " ++ x
+{-
+data LExp =
+    | LetRec VarName Type LExp LExp
+-}
+
+data Error =
+    UnboundVariable VarName
+  | UndefinedApplication
+  | InvalidBinop LExp {-invalid expression-}
+  | InvalidBoolean LExp{-invalid expresssion-}
+  | InvalidType LExp {-invalid expression-}
+  deriving Show
+
+eval :: LExp -> Either Error LExp
+eval (Var x) = Left $ UnboundVariable x
 eval (Lambda v t e) = Right $ Lambda v t e
-eval (Num n) = Right $ Num n
-eval (Ap (Lambda v1 t1 e1) e@(Lambda v2 t2 e2)) = eval (subst e1 v1 e)
-eval (Ap (Lambda v1 t1 e1) e@(Num x)) = eval (subst e1 v1 e)
-eval e@(Ap (Num n) (Num m)) = Left $ error $ "Not a number: " ++ (show e)
+eval (Num x) = Right $ Num x
+eval (Bool b) = Right $ Bool b
 eval (Ap e1 e2) = do
   ee1 <- eval e1
   ee2 <- eval e2
-  eval (Ap ee1 ee2)
--- Remove
-eval _ = undefined
+  case ee1 of
+    (Lambda v t e) -> eval (subst e v ee2)
+    _ -> Left $ UndefinedApplication
+eval e@(Plus e1 e2) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  case (ee1,ee2) of
+    (Num n, Num m) -> return (Num (m+n))
+    _ -> Left $ InvalidBinop e
+eval e@(Minus e1 e2) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  case (ee1,ee2) of
+    (Num n, Num m) -> return (Num (n-m))
+    _ -> Left $ InvalidBinop e
+eval e@(Times e1 e2) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  case (ee1,ee2) of
+    (Num n, Num m) -> return (Num (m*n))
+    _ -> Left $ InvalidBinop e
+eval e@(Divide e1 e2) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  case (ee1,ee2) of
+    (Num n,Num m) -> return (Num (n `div` m))
+    _ -> Left $ InvalidBinop e
+eval e@(And e1 e2) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  case (ee1, ee2) of
+    (Bool b1, Bool b2) -> return (Bool (b1 && b2))
+    _ -> Left $ InvalidBinop e
+eval e@(Or e1 e2) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  case (ee1, ee2) of
+    (Bool b1, Bool b2) -> return (Bool (b1 || b2))
+    _ -> Left $ InvalidBinop e
+eval e@(Lt e1 e2) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  case (ee1,ee2) of
+    (Num n, Num m) -> return (Bool (n <= m))
+    _ -> Left $ InvalidBinop e
+eval e@(If e1 e2 e3) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  ee3 <- eval e3
+  case ee1 of
+    (Bool True) -> return ee2
+    (Bool False) -> return ee3
+    _ -> Left $ InvalidBoolean e
+eval e@(Pair e1 e2) = do
+  ee1 <- eval e1
+  ee2 <- eval e2
+  return (Pair ee1 ee2) --ask about this but it feels like it should work
+eval e@(Not e1) =
+  case (eval e1) of
+    Right (Bool b) -> Right $ Bool (not b)
+    Right _ -> Left $ InvalidType e1
+    l -> l
+eval e@(Neg e1) =
+  case (eval e1) of
+    Right (Num n) -> Right $ Num (-n)
+    Right _ -> Left $ InvalidType e
+    l -> l
+eval e@(Fst e1) =
+  case (eval e1) of
+    Right (Pair ee1 ee2) -> Right $ ee1
+    Right _ -> Left $ InvalidType e
+    l -> l
+eval e@(Snd e1) =
+  case (eval e1) of
+    Right (Pair ee1 ee2) -> Right $ ee2
+    Right _ -> Left $ InvalidType e
+    l -> l
+eval e@(Eqq e1 e2) =
+  ee1 <- eval e1
+  ee2 <- eval e2
+  case (ee1,ee2) of
+    (Num n, Num m) -> Right $ Bool $ m==n
+    (Bool b1, Bool b2) -> Right $ Bool $ b1==b2
+    (Pair x1 y1, Pair x2 y2) -> Right $ Bool $ x1 == x2 && y1 = y2
+    _ -> Left $ InvalidBinop e
+eval (Typed e1 t) = eval e1
+eval (Let x e1 e2) = eval $ subst e2 x e1
+eval _ = undefined 
+
+
+
 
 free :: LExp -> Set VarName
 free (Var x) = Data.Set.singleton x

@@ -29,5 +29,5 @@ main = do
         (Right exp) -> exp
   let evaluated = eval parsed
   case evaluated of
-    (Left e) -> e
+    (Left e) -> error $ show e
     (Right exp) -> putStr $ show exp
