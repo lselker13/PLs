@@ -29,10 +29,10 @@ main = do
         (Left e) -> e
         (Right exp) -> exp
   let evaluated = if Data.Map.member "Unsafe" pArgs
-        then case typeOf Data.Map.empty parsed of
+        then eval parsed
+        else case typeOf Data.Map.empty parsed of
                Right _ -> eval parsed
                Left e -> error $ show e
-        else eval parsed
   case evaluated of
     (Left e) -> error $ show e
-    (Right exp) -> putStr $ show exp
+    (Right exp) -> putStr $ show' exp

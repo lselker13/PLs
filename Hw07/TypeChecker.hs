@@ -11,7 +11,16 @@ data TypeError = ExpectedFunction LExp Type
                | Mismatch LExp Type Type {- expression, got, expected -}
                | NotPair LExp Type
                | FunctionEqualityException LExp 
-               | UnboundVariable VarName deriving Show
+               | UnboundVariable VarName
+
+
+instance Show TypeError where
+  show (ExpectedFunction e t) = "Expected function in " ++ (show e) ++ ", got " ++ (show t)
+  show (Mismatch e tg te) = "Type mismatch in " ++ (show e) ++ ", got " ++ (show tg) ++ ", expected " ++ (show te)
+  show (NotPair e t) = "Expected pair in " ++ (show e) ++ ", got " ++ (show t)
+  show (FunctionEqualityException e) = "Attempted to call equality on functions in " ++ (show e)
+  show (UnboundVariable v) = "Unbound variable " ++ v
+  
 
 typeOf :: Context -> LExp -> Either TypeError Type
 typeOf g (Var x) =
@@ -128,5 +137,10 @@ typeOf g e@(Eqq e1 e2) = do
            TFun _ _  -> Left $ FunctionEqualityException e
            _ -> return TBool
     else Left $ Mismatch e t2 t1
-
+typeOf g e@(LetRec v t e1 e2) = do
+  let g' = Data.Map.insert v t g
+  t' <- typeOf g' e1
+  if t' == t
+    then typeOf g' e2
+    else Left $ Mismatch e t' t
 

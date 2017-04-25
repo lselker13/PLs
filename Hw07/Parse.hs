@@ -45,6 +45,10 @@ data LExp =
 instance Show LExp where
   show = lShow
 
+show' :: LExp -> String
+show' (Lambda _ _ _) = "<function>"
+show' e = show e
+
 lShow :: LExp -> String
 lShow (Var x) = x
 lShow (Ap e1 e2) = (par $  lShow e1) ++" "++ (par $  lShow e2)
