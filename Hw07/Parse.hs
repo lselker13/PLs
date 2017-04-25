@@ -13,8 +13,9 @@ import Data.Set hiding (null, foldr, foldl)
 import System.Environment
 import System.Exit
 import System.IO
-type VarName = String
 
+
+type VarName = String
 
 data LExp =
       Var VarName
@@ -44,7 +45,6 @@ data LExp =
 instance Show LExp where
   show = lShow
 
-
 lShow :: LExp -> String
 lShow (Var x) = x
 lShow (Ap e1 e2) = (par $  lShow e1) ++" "++ (par $  lShow e2)
@@ -59,9 +59,7 @@ lShow (Typed e t) = par $ (lShow e) ++ " : " ++ (show t)
 lShow (Pair e1 e2) = par $ (lShow e1) ++ ", " ++ (lShow e2)
 lShow (Neg e) = "-" ++ (par $ lShow e)
 lShow (Not e) = "not " ++ (par $ lShow e)
-lShow (Fst (Pair e1 _)) = lShow e1
 lShow (Fst e) = "fst " ++ (par $ (lShow e))
-lShow (Snd (Pair _ e2)) = lShow e2
 lShow (Snd e) = "snd " ++ (par $ (lShow e))
 lShow (Plus e1 e2) = (lShow e1) ++ " + " ++ (lShow e2)
 lShow (Minus e1 e2) = (lShow e1) ++ " - " ++ (lShow e2)
