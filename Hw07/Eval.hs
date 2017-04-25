@@ -15,11 +15,6 @@ import System.IO
 
 import Parse
 
-
-
---data LExp =
---    | LetRec VarName Type LExp LExp
-
 --let x = e1 in e2
 --e2 -> x -> e1 
 subst :: LExp -> VarName -> LExp -> LExp
@@ -45,7 +40,10 @@ subst (Not e1) y e = Not $ subst e1 y e
 subst (Fst e1) y e = Fst $ subst e1 y e
 subst (Snd e1) y e = Snd $ subst e1 y e
 subst (Typed e1 t) y e = subst e1 y e
-subst (Let x e1 e2) y e = subst (subst e2 x e1) y e
+subst l@(Let x e1 e2) y e | x == y = l
+                          | otherwise = Let x (subst e1 y e) (subst e2 y e)
+subst l@(LetRec x t e1 e2) y e | x == y = l
+                           | otherwise = LetRec x t (subst e1 y e) (subst e2 y e)
 
 {-
 data LExp =
@@ -58,6 +56,7 @@ data Error =
   | InvalidBinop LExp {-invalid expression-}
   | InvalidBoolean LExp{-invalid expresssion-}
   | InvalidType LExp {-invalid expression-}
+  | InvalidASTEvaluated
   deriving Show
 
 eval :: LExp -> Either Error LExp
@@ -155,8 +154,13 @@ eval e@(Eqq e1 e2) = do
     _ -> Left $ InvalidBinop e
 eval (Typed e1 t) = eval e1
 eval (Let x e1 e2) = eval $ subst e2 x e1
-eval _ = undefined 
-
+eval (LetRec x t e1 e2) = do
+  let se1 = subst e1 x (LetRec x t e1 (Var x))
+  ee1 <- eval se1
+  eval (subst e2 x ee1)
+  
+--let x = e1 in e2
+--e2 -> x -> e1 
 
 te1, te2, te3, te4, te5 :: String
 te1 = "lambda x . x"
