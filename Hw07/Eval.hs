@@ -158,16 +158,6 @@ eval (Let x e1 e2) = eval $ subst e2 x e1
 eval _ = undefined 
 
 
-
-
-free :: LExp -> Set VarName
-free (Var x) = Data.Set.singleton x
-free (Lambda v t e) = Data.Set.delete v (free e)
-free (Ap e1 e2) = Data.Set.union (free e1) (free e2)
-free _ = error $ "Running free on nums/succs"
--- If Church or Check are in the map at all they are true
-
-
 te1, te2, te3, te4, te5 :: String
 te1 = "lambda x . x"
 te2 = "(lambda y z a . a y z) (lambda c.c)"
