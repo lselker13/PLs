@@ -159,6 +159,7 @@ keywords = ["lambda", "let", "in", "int", "bool", "not", "fst", "snd", "and", "o
 types :: Map String Type
 types = Data.Map.insert "int" TInt (Data.Map.insert "bool" TBool (Data.Map.empty))
 
+
 isKeyword :: String -> Bool
 isKeyword = (`elem` keywords)
 
@@ -205,7 +206,8 @@ formAp = ws *> pure Ap
 
 pair a b = (a,b)
 
-
+notMinus :: Parser ()
+notMinus = ensure (maybe True (not . (== '-'))) (ws *> lookahead) *> pure ()
 
 unop :: Parser (LExp -> LExp)
 unop = ws *> char '-' *> pure Neg
@@ -229,7 +231,7 @@ binop3 :: Parser (LExp -> LExp -> LExp)
 binop3 = ws *> char '*' *> pure Times
   <|> ws *> char '/' *> pure Divide
   <|> ws *> kw "and" *> pure And
-  <|> ws *> pure Ap
+  <|> notMinus *> pure Ap
 
 
 atom, factor, term, comparable, lExp :: Parser LExp
