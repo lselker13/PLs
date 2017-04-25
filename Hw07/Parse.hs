@@ -158,7 +158,7 @@ parens :: Parser a -> Parser a
 parens p = (char '(' *> p) <* char ')'
 
 keywords :: [String]
-keywords = ["lambda", "let", "in", "int", "bool", "not", "fst", "snd", "and", "or"]
+keywords = ["if","then", "else",  "lambda", "let", "in", "int", "bool", "not", "fst", "snd", "and", "or"]
 
 types :: Map String Type
 types = Data.Map.insert "int" TInt (Data.Map.insert "bool" TBool (Data.Map.empty))
@@ -246,9 +246,9 @@ atom =
 
   <|> kw "false" *> pure (Bool False)
 
-  <|> If <$> (kw "if" *> ws *> lExp)
+  <|> If <$> (kw "if" *> ws *> lExp) 
   <*> (kw "then" *> ws *> lExp)
-  <*> (kw "else" *> ws *> lExp)
+  <*> (kw "else" *> ws *> lExp) 
 
   <|> (parens $ Typed <$> (ws *> lExp) <*> (char ':' *> typ))
 
