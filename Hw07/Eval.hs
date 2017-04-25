@@ -125,7 +125,7 @@ eval e@(Pair e1 e2) = do
   ee1 <- eval e1
   ee2 <- eval e2
   return (Pair ee1 ee2) --ask about this but it feels like it should work
-eval e@(Not e1) =
+eval e@(Not e1) = 
   case (eval e1) of
     Right (Bool b) -> Right $ Bool (not b)
     Right _ -> Left $ InvalidType e1
@@ -145,13 +145,13 @@ eval e@(Snd e1) =
     Right (Pair ee1 ee2) -> Right $ ee2
     Right _ -> Left $ InvalidType e
     l -> l
-eval e@(Eqq e1 e2) =
+eval e@(Eqq e1 e2) = do
   ee1 <- eval e1
   ee2 <- eval e2
   case (ee1,ee2) of
-    (Num n, Num m) -> Right $ Bool $ m==n
-    (Bool b1, Bool b2) -> Right $ Bool $ b1==b2
-    (Pair x1 y1, Pair x2 y2) -> Right $ Bool $ x1 == x2 && y1 = y2
+    (Num n, Num m) -> return $ Bool $ m==n
+    (Bool b1, Bool b2) -> return $ Bool $ b1==b2
+    (Pair x1 y1, Pair x2 y2) -> eval (And (Eqq x1 x2) (Eqq y1 y2))
     _ -> Left $ InvalidBinop e
 eval (Typed e1 t) = eval e1
 eval (Let x e1 e2) = eval $ subst e2 x e1
