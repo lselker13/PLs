@@ -35,4 +35,4 @@ main = do
                Left e -> error $ show e
   case evaluated of
     (Left e) -> error $ show e
-    (Right exp) -> putStr $ show' exp
+    (Right exp) -> putStr $ show exp

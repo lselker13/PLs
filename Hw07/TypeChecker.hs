@@ -20,7 +20,15 @@ instance Show TypeError where
   show (NotPair e t) = "Expected pair in " ++ (show e) ++ ", got " ++ (show t)
   show (FunctionEqualityException e) = "Attempted to call equality on functions in " ++ (show e)
   show (UnboundVariable v) = "Unbound variable " ++ v
-  
+
+
+
+containsFunction :: Type -> Bool
+containsFunction (TFun _ _) = True
+containsFunction (TPair e1 e2) = b1 || b2 where
+  b1 = containsFunction e1
+  b2 = containsFunction e2
+containsFunction _ = False
 
 typeOf :: Context -> LExp -> Either TypeError Type
 typeOf g (Var x) =
@@ -112,7 +120,7 @@ typeOf g e@(Lt e1 e2) = do
   t1 <- typeOf g e1
   t2 <- typeOf g e2
   case (t1, t2) of
-    (TInt, TInt) -> return TInt
+    (TInt, TInt) -> return TBool
     (TInt, t) -> Left $ Mismatch e t TInt
     (t, _) -> Left $ Mismatch e t TInt
 typeOf g e@(And e1 e2) = do
@@ -133,9 +141,9 @@ typeOf g e@(Eqq e1 e2) = do
   t1 <- typeOf g e1
   t2 <- typeOf g e2
   if t1 == t2
-    then case t1 of
-           TFun _ _  -> Left $ FunctionEqualityException e
-           _ -> return TBool
+    then if containsFunction t1
+         then Left $ FunctionEqualityException e
+         else return TBool
     else Left $ Mismatch e t2 t1
 typeOf g e@(LetRec v t e1 e2) = do
   let g' = Data.Map.insert v t g

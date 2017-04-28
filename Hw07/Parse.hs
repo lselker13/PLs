@@ -210,8 +210,8 @@ formAp = ws *> pure Ap
 
 pair a b = (a,b)
 
-notMinus :: Parser ()
-notMinus = ensure (maybe True (not . (== '-'))) (ws *> lookahead) *> pure ()
+nextNot :: Char -> Parser ()
+nextNot a = ensure (maybe True (not . (== a))) (ws *> lookahead) *> pure ()
 
 unop :: Parser (LExp -> LExp)
 unop = ws *> char '-' *> pure Neg
@@ -219,10 +219,11 @@ unop = ws *> char '-' *> pure Neg
   <|> ws *> kw "fst" *> pure Fst
   <|> ws *> kw "snd" *> pure Snd
 
+
 binop1 :: Parser (LExp -> LExp -> LExp)
-binop1 = ws *> char '<' *> pure Lt
+binop1 = ws *> char '<' *> nextNot '=' *> pure Lt
   <|> ws *> str "==" *> pure Eqq
-  <|> ws *> char '>' *> (pure $ flip Lt)
+  <|> ws *> char '>' *> nextNot '=' *> (pure $ flip Lt)
   <|> ws *> str ">=" *> pure (\le1 le2 -> Not $ Lt le1 le2)
   <|> ws *> str "<=" *> pure (\le1 le2 -> Or (Lt le1 le2) (Eqq le1 le2))
   
@@ -235,7 +236,7 @@ binop3 :: Parser (LExp -> LExp -> LExp)
 binop3 = ws *> char '*' *> pure Times
   <|> ws *> char '/' *> pure Divide
   <|> ws *> kw "and" *> pure And
-  <|> notMinus *> pure Ap
+  <|> nextNot '-' *> pure Ap
 
 
 atom, factor, term, comparable, lExp :: Parser LExp

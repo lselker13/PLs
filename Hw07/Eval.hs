@@ -114,11 +114,9 @@ eval e@(Lt e1 e2) = do
     _ -> Left $ InvalidBinop e
 eval e@(If e1 e2 e3) = do
   ee1 <- eval e1
-  ee2 <- eval e2
-  ee3 <- eval e3
   case ee1 of
-    (Bool True) -> return ee2
-    (Bool False) -> return ee3
+    (Bool True) -> eval e2
+    (Bool False) -> eval e3
     _ -> Left $ InvalidBoolean e
 eval e@(Pair e1 e2) = do
   ee1 <- eval e1
